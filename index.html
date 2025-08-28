@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>淘宝电商工作流助手</title>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link href="https://fonts.googlefonts.cn/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.6.0/echarts.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #FF4E50 0%, #F9D423 100%);
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="gradient-bg py-6">
+        <div class="container mx-auto px-4">
+            <h1 class="text-3xl font-bold text-white text-center">
+                <i class="fas fa-shopping-cart mr-2"></i>淘宝电商工作流助手
+            </h1>
+            <p class="text-white text-center mt-2">一键抓取产品信息，自动生成营销图片</p>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="glass-panel rounded-lg shadow-xl p-6 max-w-4xl mx-auto">
+            <!-- 输入区域 -->
+            <div class="mb-8">
+                <label for="product-url" class="block text-lg font-medium text-gray-700 mb-2">淘宝产品链接</label>
+                <div class="flex">
+                    <input type="text" id="product-url" placeholder="请输入淘宝产品链接..." 
+                           class="flex-1 px-4 py-3 rounded-l-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                    <button id="start-btn" class="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-r-lg transition-colors duration-300 flex items-center">
+                        <i class="fas fa-play mr-2"></i>开始处理
+                    </button>
+                </div>
+                <p class="text-sm text-gray-500 mt-2">例如: https://item.taobao.com/item.htm?id=123456789</p>
+            </div>
+
+            <!-- 配置选项 -->
+            <div class="mb-8">
+                <h2 class="text-lg font-medium text-gray-700 mb-4">生成配置</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <div class="flex items-center mb-2">
+                            <input type="checkbox" id="main-image" class="w-5 h-5 text-orange-500" checked>
+                            <label for="main-image" class="ml-2 text-gray-700">主图生成</label>
+                        </div>
+                        <select id="main-image-template" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+                            <option value="template1">模板1 - 简约风格</option>
+                            <option value="template2">模板2 - 活力风格</option>
+                            <option value="template3">模板3 - 高端风格</option>
+                        </select>
+                    </div>
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <div class="flex items-center mb-2">
+                            <input type="checkbox" id="spec-image" class="w-5 h-5 text-orange-500" checked>
+                            <label for="spec-image" class="ml-2 text-gray-700">规格图生成</label>
+                        </div>
+                        <select id="spec-image-template" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+                            <option value="template1">模板1 - 表格式</option>
+                            <option value="template2">模板2 - 卡片式</option>
+                            <option value="template3">模板3 - 对比式</option>
+                        </select>
+                    </div>
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <div class="flex items-center mb-2">
+                            <input type="checkbox" id="detail-image" class="w-5 h-5 text-orange-500" checked>
+                            <label for="detail-image" class="ml-2 text-gray-700">详情图生成</label>
+                        </div>
+                        <select id="detail-image-template" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+                            <option value="template1">模板1 - 图文结合</option>
+                            <option value="template2">模板2 - 功能展示</option>
+                            <option value="template3">模板3 - 场景应用</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 保存设置 -->
+            <div class="mb-8">
+                <h2 class="text-lg font-medium text-gray-700 mb-4">保存设置</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="save-path" class="block text-sm font-medium text-gray-700 mb-1">保存位置</label>
+                        <div class="flex">
+                            <input type="text" id="save-path" placeholder="请选择保存路径..." 
+                                class="flex-1 px-4 py-2 rounded-l-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                            <button id="browse-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-r-md transition-colors duration-300">
+                                <i class="fas fa-folder-open"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="file-naming" class="block text-sm font-medium text-gray-700 mb-1">文件命名规则</label>
+                        <select id="file-naming" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                            <option value="productid">产品ID</option>
+                            <option value="productname">产品名称</option>
+                            <option value="datetime">日期时间</option>
+                            <option value="custom">自定义</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 进度显示 -->
+            <div id="progress-container" class="hidden mb-8">
+                <h2 class="text-lg font-medium text-gray-700 mb-4">处理进度</h2>
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm font-medium text-gray-700">信息抓取</span>
+                            <span class="text-sm font-medium text-gray-700" id="crawl-percentage">0%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5">
+                            <div id="crawl-progress" class="bg-blue-600 h-2.5 rounded-full progress-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm font-medium text-gray-700">图片生成</span>
+                            <span class="text-sm font-medium text-gray-700" id="generate-percentage">0%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5">
+                            <div id="generate-progress" class="bg-green-600 h-2.5 rounded-full progress-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm font-medium text-gray-700">文件保存</span>
+                            <span class="text-sm font-medium text-gray-700" id="save-percentage">0%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5">
+                            <div id="save-progress" class="bg-purple-600 h-2.5 rounded-full progress-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 结果显示 -->
+            <div id="result-container" class="hidden">
+                <h2 class="text-lg font-medium text-gray-700 mb-4">处理结果</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <h3 class="font-medium text-gray-700 mb-2">主图</h3>
+                        <div id="main-image-preview" class="h-40 bg-gray-100 rounded flex items-center justify-center">
+                            <span class="text-gray-400">预览区域</span>
+                        </div>
+                        <div class="mt-2 text-sm text-gray-600">
+                            已生成 <span id="main-image-count">0</span> 张主图
+                        </div>
+                    </div>
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <h3 class="font-medium text-gray-700 mb-2">规格图</h3>
+                        <div id="spec-image-preview" class="h-40 bg-gray-100 rounded flex items-center justify-center">
+                            <span class="text-gray-400">预览区域</span>
+                        </div>
+                        <div class="mt-2 text-sm text-gray-600">
+                            已生成 <span id="spec-image-count">0</span> 张规格图
+                        </div>
+                    </div>
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <h3 class="font-medium text-gray-700 mb-2">详情图</h3>
+                        <div id="detail-image-preview" class="h-40 bg-gray-100 rounded flex items-center justify-center">
+                            <span class="text-gray-400">预览区域</span>
+                        </div>
+                        <div class="mt-2 text-sm text-gray-600">
+                            已生成 <span id="detail-image-count">0</span> 张详情图
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button id="download-all-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors duration-300">
+                        <i class="fas fa-download mr-2"></i>下载全部图片
+                    </button>
+                    <button id="open-folder-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded transition-colors duration-300">
+                        <i class="fas fa-folder-open mr-2"></i>打开文件夹
+                    </button>
+                    <button id="export-btn" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded transition-colors duration-300">
+                        <i class="fas fa-file-export mr-2"></i>导出到网盘
+                    </button>
+                </div>
+            </div>
+
+            <!-- 统计数据 -->
+            <div class="mt-12">
+                <h2 class="text-lg font-medium text-gray-700 mb-4">工作流统计</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <div id="task-chart" class="h-64"></div>
+                    </div>
+                    <div>
+                        <div id="type-chart" class="h-64"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部信息 -->
+    <footer class="bg-gray-800 text-white py-6 mt-12">
+        <div class="container mx-auto px-4 text-center">
+            <p>淘宝电商工作流助手 &copy; 2025</p>
+            <p class="text-sm text-gray-400 mt-2">本工具仅供学习和提高工作效率使用，请遵守相关平台规则</p>
+        </div>
+    </footer>
+
+    <!-- 模态框 -->
+    <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-medium text-gray-900" id="modal-title">提示</h3>
+                <button id="modal-close" class="text-gray-400 hover:text-gray-500">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="modal-content" class="mb-6">
+                <!-- 模态框内容 -->
+            </div>
+            <div class="flex justify-end">
+                <button id="modal-confirm" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded transition-colors duration-300">
+                    确定
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script src="js/crawler.js"></script>
+    <script src="js/imageGenerator.js"></script>
+    <script src="js/fileManager.js"></script>
+    <script src="js/demo.js"></script>
+    <script>
+        // 初始化图表
+        window.onload = function() {
+            // 任务统计图表
+            const taskChart = echarts.init(document.getElementById('task-chart'));
+            taskChart.setOption({
+                title: {
+                    text: '任务处理统计',
+                    left: 'center'
+                },
+                tooltip: {
+                    trigger: 'axis'
+                },
+                legend: {
+                    data: ['已处理产品', '生成图片'],
+                    bottom: 0
+                },
+                xAxis: {
+                    type: 'category',
+                    data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: [
+                    {
+                        name: '已处理产品',
+                        type: 'line',
+                        data: [5, 7, 3, 8, 6, 2, 0],
+                        smooth: true,
+                        lineStyle: {
+                            width: 3
+                        }
+                    },
+                    {
+                        name: '生成图片',
+                        type: 'line',
+                        data: [15, 21, 9, 24, 18, 6, 0],
+                        smooth: true,
+                        lineStyle: {
+                            width: 3
+                        }
+                    }
+                ]
+            });
+
+            // 图片类型统计图表
+            const typeChart = echarts.init(document.getElementById('type-chart'));
+            typeChart.setOption({
+                title: {
+                    text: '图片类型分布',
+                    left: 'center'
+                },
+                tooltip: {
+                    trigger: 'item'
+                },
+                legend: {
+                    bottom: 0
+                },
+                series: [
+                    {
+                        name: '图片类型',
+                        type: 'pie',
+                        radius: '65%',
+                        center: ['50%', '45%'],
+                        data: [
+                            { value: 42, name: '主图' },
+                            { value: 28, name: '规格图' },
+                            { value: 36, name: '详情图' }
+                        ],
+                        emphasis: {
+                            itemStyle: {
+                                shadowBlur: 10,
+                                shadowOffsetX: 0,
+                                shadowColor: 'rgba(0, 0, 0, 0.5)'
+                            }
+                        }
+                    }
+                ]
+            });
+
+            // 监听窗口大小变化，调整图表大小
+            window.addEventListener('resize', function() {
+                taskChart.resize();
+                typeChart.resize();
+            });
+        };
+
+        // 模拟处理流程
+        document.getElementById('start-btn').addEventListener('click', function() {
+            const productUrl = document.getElementById('product-url').value;
+            if (!productUrl) {
+                showModal('错误', '请输入有效的产品链接');
+                return;
+            }
+
+            // 显示进度区域
+            document.getElementById('progress-container').classList.remove('hidden');
+            
+            // 模拟爬虫进度
+            simulateProgress('crawl-progress', 'crawl-percentage', 3000, function() {
+                // 模拟图片生成进度
+                simulateProgress('generate-progress', 'generate-percentage', 5000, function() {
+                    // 模拟文件保存进度
+                    simulateProgress('save-progress', 'save-percentage', 2000, function() {
+                        // 显示结果区域
+                        document.getElementById('result-container').classList.remove('hidden');
+                        
+                        // 更新结果数据
+                        document.getElementById('main-image-count').textContent = '5';
+                        document.getElementById('spec-image-count').textContent = '3';
+                        document.getElementById('detail-image-count').textContent = '8';
+                        
+                        // 显示完成提示
+                        showModal('处理完成', '产品信息已抓取，图片已生成并保存到指定位置');
+                    });
+                });
+            });
+        });
+
+        // 模拟进度条
+        function simulateProgress(progressBarId, percentageId, duration, callback) {
+            const progressBar = document.getElementById(progressBarId);
+            const percentageElement = document.getElementById(percentageId);
+            let progress = 0;
+            const interval = 50;
+            const increment = 100 / (duration / interval);
+            
+            const timer = setInterval(function() {
+                progress += increment;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(timer);
+                    if (callback) setTimeout(callback, 500);
+                }
+                
+                progressBar.style.width = progress + '%';
+                percentageElement.textContent = Math.round(progress) + '%';
+            }, interval);
+        }
+
+        // 显示模态框
+        function showModal(title, content) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-content').textContent = content;
+            document.getElementById('modal').classList.remove('hidden');
+        }
+
+        // 关闭模态框
+        document.getElementById('modal-close').addEventListener('click', function() {
+            document.getElementById('modal').classList.add('hidden');
+        });
+
+        document.getElementById('modal-confirm').addEventListener('click', function() {
+            document.getElementById('modal').classList.add('hidden');
+        });
+    </script>
+</body>
+</html>
